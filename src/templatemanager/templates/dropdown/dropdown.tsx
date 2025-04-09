@@ -1,20 +1,42 @@
 import BaseChatTemplate from '../baseChatTemplate';
 import './dropdown.scss';
 import { h, Fragment } from 'preact';
-import { useState } from 'preact/hooks';
-import { Message } from '../message/message';
+import KoreHelpers from '../../../utils/helpers';
 
 export function Dropdown(props: any) {
     const hostInstance = props.hostInstance;
     const msgData = props.msgData;
-    const [selectedItem, setSelectedItem] = useState({ title: msgData.message?.[0].component?.payload?.placeholder ? msgData.message?.[0].component?.payload?.placeholder : 'Select', value: msgData.message?.[0].component?.payload?.placeholder ? msgData.message?.[0].component?.payload?.placeholder : 'Select' });
+    const helpers = KoreHelpers.helpers;
+    
+    let selectedItem = { 
+        title: msgData.message?.[0].component?.payload?.placeholder || 'Select', 
+        value: msgData.message?.[0].component?.payload?.placeholder || 'Select' 
+    };
 
     const openDropdown = (e: any) => {
         e.currentTarget.classList.toggle('show-drp');
     }
 
     const selectItem = (e: any, item: any) => {
-        setSelectedItem(item);
+        selectedItem = item;
+        
+        const dropdownSection = document.querySelector(`.dropdown-${msgData.messageId}`);
+        if (dropdownSection) {
+            const dropdownButton = dropdownSection.querySelector('.drp-btn span');
+            if (dropdownButton) {
+                dropdownButton.textContent = item.title;
+            }
+            
+            const listItems = dropdownSection.querySelectorAll('.menu-content-list-drp li');
+            listItems.forEach((li: any) => {
+                const titleElement = li.querySelector('p');
+                if (titleElement && titleElement.textContent.trim() === item.title) {
+                    li.classList.add('active-list-option');
+                } else {
+                    li.classList.remove('active-list-option');
+                }
+            });
+        }
     }
 
     const onSubmit = () => {
@@ -22,15 +44,17 @@ export function Dropdown(props: any) {
     }
 
     if (msgData?.message?.[0]?.component?.payload?.template_type == 'dropdown_template') {
-        if (msgData?.fromHistory) {
-            const selectedItem = msgData?.message?.[0]?.component?.payload?.elements.filter((e: any) => e.value == msgData?.message?.[0]?.component?.selectedValue);
-            setSelectedItem(selectedItem[0]);
+        if (msgData?.fromHistory) { 
+            const historyItem = msgData?.message?.[0]?.component?.payload?.elements.filter((e: any) => e.value == msgData?.message?.[0]?.component?.selectedValue);
+            if (historyItem && historyItem.length > 0) {
+                selectedItem = historyItem[0];
+            }
         }
         return (
             <section className={`dropdwon-wrapper-section dropdown-${msgData.messageId}`} data-cw-msg-id={msgData?.messageId}>
                 <div className="dropdwon-wrapper-contaner">
                     { msgData.message?.[0].component?.payload.heading && <div className="heading-block">
-                        <h1>{msgData.message?.[0].component?.payload.heading}</h1>
+                        <h1 dangerouslySetInnerHTML={{ __html: helpers.convertMDtoHTML(msgData.message?.[0].component?.payload.heading, "bot") }}></h1>
                     </div> }
                     <div className="dropdown-temp">
                         { msgData.message?.[0].component?.payload?.label && <div className="label-text">{msgData.message?.[0].component?.payload.label}</div> }
@@ -45,8 +69,8 @@ export function Dropdown(props: any) {
                                 { msgData?.message?.[0].component?.payload.elements.map((ele: any) => (
                                     <li className={selectedItem?.title == ele?.title ? 'active-list-option' :''} onClick={event => selectItem(event, ele) }>
                                         <div className="list-section">
-                                            <p>{ele.title}</p>
-                                            {ele && ele.description && <div className="subtext">{ele.description}</div>}
+                                            <p dangerouslySetInnerHTML={{ __html: helpers.convertMDtoHTML(ele.title, "bot") }}></p>
+                                            {ele && ele.description && <div className="subtext" dangerouslySetInnerHTML={{ __html: helpers.convertMDtoHTML(ele.description, "bot") }}></div>}
                                         </div>
                                         {/* { selectedItem.title == ele.title && <i className="sdkv3-check"></i> } */}
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -57,7 +81,7 @@ export function Dropdown(props: any) {
                             </div>
                         </div>
                     </div>
-                    <button className="kr-button-primary lg" onClick={onSubmit}>Submit</button>
+                    <button className="kr-button-primary lg" onClick={onSubmit} dangerouslySetInnerHTML={{ __html: helpers.convertMDtoHTML(msgData?.message[0]?.component?.payload?.submitButtonText || "Submit", "bot") }}></button>
                 </div>
             </section>
         );
